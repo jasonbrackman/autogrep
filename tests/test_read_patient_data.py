@@ -1,5 +1,5 @@
 import unittest
-import read_patient_data as rpd
+from read_patient_data import get_weights
 
 
 class TestReadPatientData(unittest.TestCase):
@@ -21,7 +21,7 @@ class TestReadPatientData(unittest.TestCase):
         ]
 
         for group in (groups01, groups02):
-            int_weight, max_weight, min_weight = rpd.get_weights(group)
+            int_weight, max_weight, min_weight = get_weights(group)
             assert int_weight == 333
             assert max_weight == 444
             assert min_weight == 222

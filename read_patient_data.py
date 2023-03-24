@@ -1,13 +1,39 @@
 import copy
 import csv
-
 import os
 import re
 import sys
-from typing import List, Tuple, Set
+from typing import List, Tuple
 
-PATTERN = re.compile("\d+")
-HEIGHT_PATTERN = re.compile("\d+'\d+|\d+\s?cm")
+LBS_PATTERN = re.compile("\d+\.?\d+\s*lbs")
+HEIGHT_PATTERN = re.compile("\d+'\d+|\d+\s*cm")
+SMOKE_PATTERN = re.compile("[sS]moker[:|\s*][-|\s*]")
+# TODO:
+# --> Fasting Glucose / Glucose Fasting: + float
+# --> HBA1c / Hemoglobin (always a1c): + float
+# --> Insurance: if provider say yes.
+# --> alcohol - split / look to left for a number -- servings
+
+
+def is_alcohol(groups: List[List[str]]) -> bool:
+    """
+    Problem determining specifics as there are many entry types, no two the same.
+    Multiple descriptions throughout reports.
+    Will need further review/discussion.
+    """
+    for group in groups:
+        for line in group:
+            if "alcohol" in line.lower():
+                print(line)
+
+
+def is_smoker(groups: List[List[str]]) -> bool:
+    for group in groups:
+        for line in group:
+            smoker = re.findall(SMOKE_PATTERN, line)
+            if smoker and "yes" in line.lower():
+                return True
+    return False
 
 
 def normalize_height(heights: List[str]) -> Tuple[int, int]:
@@ -31,22 +57,19 @@ def normalize_height(heights: List[str]) -> Tuple[int, int]:
     return high, high - low
 
 
-def get_group_weight(group: List[str]) -> Tuple[float, float, float]:
+def _get_weights_for_group(group: List[str]) -> Tuple[float, float, float]:
     # today, peak, intake
     a, b, c = 0.0, 0.0, 0.0
     for line in group:
-        if line.startswith("Today's Weight:"):
-            temp = re.findall(PATTERN, line)
-            if temp:
-                a = temp[0]
-        elif line.startswith("Peak Adult Weight:"):
-            temp = re.findall(PATTERN, line)
-            if temp:
-                b = temp[0]
-        elif line.startswith("Intake Weight:"):
-            temp = re.findall(PATTERN, line)
-            if temp:
-                c = temp[0]
+        temp = re.findall(LBS_PATTERN, line)
+        if temp:
+            temp = temp[0].replace("lbs", "").strip()
+            if line.startswith("Today's Weight:"):
+                a = temp
+            elif line.startswith("Peak Adult Weight:"):
+                b = temp
+            elif line.startswith("Intake Weight:"):
+                c = temp
 
     return float(a), float(b), float(c)
 
@@ -76,40 +99,6 @@ def find_height(groups: List[list[str]]) -> Tuple[int, int]:
     return height, discrepancy
 
 
-def main():
-    datasheets = []
-
-    for file in os.listdir("."):
-        if file.endswith(".txt"):
-            datasheet = {}
-            with open(file) as handle:
-
-                lines = handle.readlines()
-                groups = split_into_groups(lines)
-
-                # start collecting data across the groups
-                intake_weights, max_weight, min_weight = get_weights(groups)
-                height, discrepancy = find_height(groups)
-
-                recent_date, intake_date = get_recent_intake_dates(lines)
-                datasheet["Patient Number"] = os.path.splitext(file)[0]
-                datasheet["Encounters"] = len(groups)
-                datasheet["Recent Visit Date"] = recent_date
-                datasheet["Intake Visit Date"] = intake_date
-                datasheet["Intake Weight"] = max(intake_weights)  # possible duplicate entries
-                datasheet["Max Weight"] = max_weight
-                datasheet["Min Weight"] = min_weight
-                datasheet["HeightCM"] = height
-                datasheet["Height_Low_Err"] = discrepancy
-                datasheet["Intake BMI"] = calculate_bmi(height, datasheet['Intake Weight'])
-                datasheet["Max BMI"] = calculate_bmi(height, max_weight)
-                datasheet["Min BMI"] = calculate_bmi(height, min_weight)
-
-            datasheets.append(copy.deepcopy(datasheet))
-
-    return datasheets
-
-
 def calculate_bmi(height_cm: int, weight_lbs: float) -> float:
     """Returns weight in KGs to 1 decimal place."""
     kilos = weight_lbs / 2.205
@@ -118,10 +107,8 @@ def calculate_bmi(height_cm: int, weight_lbs: float) -> float:
 
 
 def get_recent_intake_dates(lines: List[str]) -> Tuple[str, str]:
-    dates = [
-        line.split()[2] for line in lines if line.startswith("Visit Date:")
-    ]
-    DEFAULT = '0000-00-00'
+    dates = [line.split()[2] for line in lines if line.startswith("Visit Date:")]
+    DEFAULT = "0000-00-00"
     recent, intake = DEFAULT, DEFAULT
     if len(dates) >= 2:
         recent = dates[0]
@@ -134,20 +121,55 @@ def get_weights(groups):
     min_weight = sys.maxsize
     intake_weights = set()
     for group in groups:
-        weights = get_group_weight(group)
+        weights = _get_weights_for_group(group)
         if max(weights) > max_weight:
             max_weight = max(weights)
         if 0 < min(weights) < min_weight:
             min_weight = min(weights)
         if weights[2] != 0.0:
             intake_weights.add(weights[2])
-    return intake_weights, max(intake_weights), min(intake_weights)
+    return max(intake_weights), max_weight, min_weight
+
+
+def main():
+    datasheets = []
+
+    for file in os.listdir("."):
+        if file.endswith(".txt"):
+            datasheet = {}
+            with open(file) as handle:
+
+                lines = handle.readlines()
+                groups = split_into_groups(lines)
+
+                # start collecting data across the groups
+                intake_weight, max_weight, min_weight = get_weights(groups)
+                height, discrepancy = find_height(groups)
+
+                recent_date, intake_date = get_recent_intake_dates(lines)
+                datasheet["Patient Number"] = os.path.splitext(file)[0]
+                datasheet["Encounters"] = len(groups)
+                datasheet["Recent Visit Date"] = recent_date
+                datasheet["Intake Visit Date"] = intake_date
+                datasheet["Intake Weight"] = intake_weight
+                datasheet["Max Weight"] = max_weight
+                datasheet["Min Weight"] = min_weight
+                datasheet["HeightCM"] = height
+                datasheet["Height_Low_Err"] = discrepancy
+                datasheet["Intake BMI"] = calculate_bmi(height, intake_weight)
+                datasheet["Max BMI"] = calculate_bmi(height, max_weight)
+                datasheet["Min BMI"] = calculate_bmi(height, min_weight)
+                datasheet["Smoker"] = is_smoker(groups)
+
+            datasheets.append(copy.deepcopy(datasheet))
+
+    return datasheets
 
 
 if __name__ == "__main__":
     datasheets = main()
     if datasheets:
-        with open("patient_data.csv", "w") as handle:
+        with open("data/patient_data.csv", "w") as handle:
             w = csv.DictWriter(handle, datasheets[0].keys())
             w.writeheader()
             for ds in datasheets:

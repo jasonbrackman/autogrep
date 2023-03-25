@@ -10,7 +10,6 @@ HEIGHT_PATTERN = re.compile(r"\d+'\d+|\d+\s*cm")
 SMOKE_PATTERN = re.compile(r"[sS]moker[:|\s*][-|\s*]")
 FLOAT_PATTERN = re.compile(r"\d+.?\d+")
 # TODO:
-# --> Fasting Glucose / Glucose Fasting: + float
 # --> HBA1c / Hemoglobin (always a1c): + float
 # --> alcohol - split / look to left for a number -- servings
 
@@ -36,10 +35,11 @@ def has_insurance(groups: List[List[str]]) -> str:
 #             if "alcohol" in line.lower():
 #                 print(line)
 
+
 def get_fasting_glucose(groups: List[List[str]]) -> float:
     for group in groups:
         for line in group:
-            if 'fasting' in line.lower():
+            if "fasting" in line.lower():
                 result = re.findall(FLOAT_PATTERN, line)
                 if result:
                     return float(result[0])

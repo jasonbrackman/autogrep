@@ -5,6 +5,8 @@ import re
 import sys
 from typing import List, Tuple, Iterable
 
+__version__ = 0.01
+
 Visit = List[str]
 Encounters = List[Visit]
 
@@ -26,17 +28,11 @@ def _yield_from_rows(encounters: Encounters) -> Iterable[str]:
 
 def get_hemoglobin_a1c(encounters: Encounters) -> float:
     """Returns the latest A1c reading."""
-    SUGAR_IMPOSSIBLE = 30
     for row in _yield_from_rows(encounters):
-        if 'a1c' in row.lower() or 'hemoglobin' in row.lower():
-            print(row)
+        if 'a1c' in row.lower():
             floats = re.findall(FLOAT_PATTERN, row)
             if floats:
-                result = float(floats[0])  # could be % or mmol/dl
-                if result > SUGAR_IMPOSSIBLE:
-                    # TODO: Get confirmation: A1C( %) = (result + 46.7) / 28.7
-                    result = round((result + 46.7) / 28.7, 1)
-                return result
+                return float(floats[0])
     return 0.0
 
 
@@ -170,7 +166,7 @@ def get_weights(encounters: Encounters) -> Tuple[float, float, float]:
             min_weight = min(weights)
         if weights[2] != 0.0:
             intake_weights.add(weights[2])
-    return max(intake_weights), max_weight, min_weight
+    return max(intake_weights) if intake_weights else 0.0, max_weight, min_weight
 
 
 def main():

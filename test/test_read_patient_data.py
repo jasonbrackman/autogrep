@@ -15,9 +15,6 @@ class TestReadPatientData(unittest.TestCase):
         self.assertEquals(
             get_hemoglobin_a1c([["Hemoglobin A1c: 5.2"]]), 5.2
         )  # with colon
-        self.assertEquals(
-            get_hemoglobin_a1c([["Hemoglobin:200"]]), 8.6
-        )  # needs conversion
         self.assertEquals(get_hemoglobin_a1c([["a1c:"]]), 0.0)  # blank / not entered
 
         # only first non-empty answer is returned
@@ -32,13 +29,23 @@ class TestReadPatientData(unittest.TestCase):
         self.assertEquals(
             get_hemoglobin_a1c(
                 [
-                    ["a1c: 110"],  # should be 5.5%
+                    ["a1c: 5.5"], # should be 5.5%
                     ["a1c 5.7"],  # expected
                     ["a1c 6.2"],  # ignored
                 ]
             ),
             5.5,
-        )  # blank / not entered))
+        )
+        self.assertEquals(
+            get_hemoglobin_a1c(
+                [
+                    ["a1c: "],  # should be 5.5%
+                    ["a1c"],  # expected
+                    ["a1c  "],  # ignored
+                ]
+            ),
+            0.0,
+        )
 
     def test_get_weights(self):
         groups01 = [

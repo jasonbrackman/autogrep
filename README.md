@@ -1,12 +1,17 @@
-# autogrep
-Parse data from collected text files.
+# Autogrep
+
+Parse and normalize 'data' from collected text files.
 
 [![Python package](https://github.com/jasonbrackman/autogrep/actions/workflows/python-test.yml/badge.svg?branch=master)](https://github.com/jasonbrackman/autogrep/actions/workflows/python-test.yml)
 
-Data is defined as Encounters which are a collection of Visits.  Each Visit can involve the collection of information, sometimes, repeating the same information multiple times.
-The purpose of this script is to normalize the data into tabular form.
+Autogrep's goal is to parse and normalize data from text files.  Each file consists of `Encounters`
+that are made up of `Visits`. Each `Visit` contains lines of information, which may have 
+spelling errors, variants for entries that should only be entered once, and non-standard units.
 
-Data processing collects:
+The focus is on cleaning up and standardizing the data so that it can be easily processed and 
+analyzed. 
+
+The information collected (and its type) includes the following:
 
 - MRN: str
 - Encounters: int

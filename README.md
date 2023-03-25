@@ -29,3 +29,4 @@ The information collected (and its type) includes the following:
 - Insurance: str
 - Fasting Glucose: float 
 - A1c: float
+- Comorbidities: str

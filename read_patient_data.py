@@ -3,7 +3,7 @@ import csv
 import os
 import re
 import sys
-from typing import List, Tuple, Iterable
+from typing import List, Tuple, Iterable, Set
 
 __version__ = 0.01
 
@@ -18,10 +18,28 @@ FLOAT_PATTERN = re.compile(r"\d+.?\d+")
 
 # TODO: alcohol - split / look to left for a number -- servings
 
-def get_cormobilities(encounters: Encounters) -> List[str]:
+
+def get_comorbidities(encounters: Encounters) -> Set[str]:
+    """
+    Finds the Comorbidities: and starts recording every line until an empty line is found.
+    When an empty line is found the recording stops.  This will repeat throughout all Visits.
+    The same information will not be entered twice and an unordered set of information will
+    be returned.
+    """
+    start_recording = False
+    interesting = set()
     for row in _yield_from_rows(encounters):
-        if 'cormobi' in row.lower():
-            print(row)
+        if start_recording is True:
+            stripped = row.strip()
+            if stripped:
+                interesting.add(stripped)
+            if stripped == '':
+                start_recording = False
+
+        if 'Comorbidities:' in row:
+            start_recording = True
+
+    return interesting
 
 def _yield_from_rows(encounters: Encounters) -> Iterable[str]:
     """Yields each row from all encounters from recent to oldest."""
@@ -202,7 +220,9 @@ def main():
                 datasheet = {}
                 with open(file) as handle:
 
-                    lines = handle.readlines()
+                    lines = handle.read()
+                    lines = lines.replace('\u200c', '')  # problem introduced in data collection
+                    lines = lines.split('\n')
                     encounters = split_into_encounters(lines)
 
                     # start collecting data across the encounters
@@ -228,7 +248,7 @@ def main():
                     datasheet["Insurance"] = has_insurance(encounters)
                     datasheet["Fasting Glucose"] = get_fasting_glucose(encounters)
                     datasheet["A1c%"] = get_hemoglobin_a1c(encounters)
-                    get_cormobilities(encounters)
+                    datasheet["Comorbidities"] = ';'.join(get_comorbidities(encounters))
                 datasheets.append(copy.deepcopy(datasheet))
             except Exception as e:
                 print(f"Couldn't process {file}: {e}")

@@ -64,11 +64,24 @@ class TestReadPatientData(unittest.TestCase):
             ]
         ]
 
+
         for group in (groups01, groups02):
             int_weight, max_weight, min_weight = get_weights(group)
             assert int_weight == 333
             assert max_weight == 444
             assert min_weight == 222
+    # def test_get_weights_no_intake(self):
+    #     group = [
+    #         [
+    #             "Today's Weight: 222lbs",
+    #             "Peak Adult Weight: 444 lbs",
+    #             "Intake Weight:",  # no intake weight
+    #         ]
+    #     ]
+    #     int_weight, max_weight, min_weight = get_weights(group)
+    #     assert int_weight == 0.0
+    #     assert max_weight == 444
+    #     assert min_weight == 222
 
     def test_has_insurance(self):
         patterns = [

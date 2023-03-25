@@ -174,34 +174,37 @@ def main():
 
     for file in os.listdir("."):
         if file.endswith(".txt"):
-            datasheet = {}
-            with open(file) as handle:
+            try:
+                datasheet = {}
+                with open(file) as handle:
 
-                lines = handle.readlines()
-                encounters = split_into_encounters(lines)
+                    lines = handle.readlines()
+                    encounters = split_into_encounters(lines)
 
-                # start collecting data across the encounters
-                intake_weight, max_weight, min_weight = get_weights(encounters)
-                height, discrepancy = find_height(encounters)
+                    # start collecting data across the encounters
+                    intake_weight, max_weight, min_weight = get_weights(encounters)
+                    height, discrepancy = find_height(encounters)
 
-                recent_date, intake_date = get_recent_intake_dates(lines)
-                datasheet["MRN"] = os.path.splitext(file)[0]
-                datasheet["Encounters"] = len(encounters)
-                datasheet["Recent Visit Date"] = recent_date
-                datasheet["Intake Visit Date"] = intake_date
-                datasheet["Intake WeightLBS"] = intake_weight
-                datasheet["Max WeightLBS"] = max_weight
-                datasheet["Min WeightLBS"] = min_weight
-                datasheet["HeightCM"] = height
-                datasheet["Height_Low_Err"] = discrepancy
-                datasheet["Intake BMI"] = calculate_bmi(height, intake_weight)
-                datasheet["Max BMI"] = calculate_bmi(height, max_weight)
-                datasheet["Min BMI"] = calculate_bmi(height, min_weight)
-                datasheet["Smoker"] = is_smoker(encounters)
-                datasheet["Insurance"] = has_insurance(encounters)
-                datasheet["Fasting Glucose"] = get_fasting_glucose(encounters)
-                datasheet["A1c%"] = get_hemoglobin_a1c(encounters)
-            datasheets.append(copy.deepcopy(datasheet))
+                    recent_date, intake_date = get_recent_intake_dates(lines)
+                    datasheet["MRN"] = os.path.splitext(file)[0]
+                    datasheet["Encounters"] = len(encounters)
+                    datasheet["Recent Visit Date"] = recent_date
+                    datasheet["Intake Visit Date"] = intake_date
+                    datasheet["Intake WeightLBS"] = intake_weight
+                    datasheet["Max WeightLBS"] = max_weight
+                    datasheet["Min WeightLBS"] = min_weight
+                    datasheet["HeightCM"] = height
+                    datasheet["Height_Low_Err"] = discrepancy
+                    datasheet["Intake BMI"] = calculate_bmi(height, intake_weight)
+                    datasheet["Max BMI"] = calculate_bmi(height, max_weight)
+                    datasheet["Min BMI"] = calculate_bmi(height, min_weight)
+                    datasheet["Smoker"] = is_smoker(encounters)
+                    datasheet["Insurance"] = has_insurance(encounters)
+                    datasheet["Fasting Glucose"] = get_fasting_glucose(encounters)
+                    datasheet["A1c%"] = get_hemoglobin_a1c(encounters)
+                datasheets.append(copy.deepcopy(datasheet))
+            except Exception as e:
+                print(f"Couldn't process {file}: {e}")
 
     return datasheets
 

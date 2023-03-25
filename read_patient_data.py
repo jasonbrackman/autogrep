@@ -29,7 +29,7 @@ def _yield_from_rows(encounters: Encounters) -> Iterable[str]:
 def get_hemoglobin_a1c(encounters: Encounters) -> float:
     """Returns the latest A1c reading."""
     for row in _yield_from_rows(encounters):
-        if 'a1c' in row.lower():
+        if "a1c" in row.lower():
             floats = re.findall(FLOAT_PATTERN, row)
             if floats:
                 return float(floats[0])
@@ -96,21 +96,31 @@ def normalize_height(heights: List[str]) -> Tuple[int, int]:
     return high, high - low
 
 
-def _get_weights_for_group(visit: Visit) -> Tuple[float, float, float]:
+def _get_weights_for_visit(visit: Visit) -> Tuple[float, float, float]:
     # today, peak, intake
     a, b, c = 0.0, 0.0, 0.0
     for line in visit:
-        temp = re.findall(LBS_PATTERN, line)
-        if temp:
-            temp = temp[0].replace("lbs", "").strip()
-            if line.startswith("Today's Weight:"):
-                a = temp
-            elif line.startswith("Peak Adult Weight:"):
-                b = temp
-            elif line.startswith("Intake Weight:"):
-                c = temp
+        if line.startswith("Today's Weight:"):
+            a = _get_float_from_weight_line(line)
+        elif line.startswith("Peak Adult Weight:"):
+            b = _get_float_from_weight_line(line)
+        elif line.startswith("Intake Weight:"):
+            c = _get_float_from_weight_line(line)
 
     return float(a), float(b), float(c)
+
+
+def _get_float_from_weight_line(line: str) -> float:
+    # weight line may or may not contain a range using a '-', such as 100-110
+    # weight line may or may not contain a decimal, such as 100.5
+    # weight line may or may not contain lbs at the end, such as 100.5 lbs
+    if "-" in line:
+        line = line.split("-")[-1]
+    line = line.replace("lbs", "")
+    result = re.findall(FLOAT_PATTERN, line)
+    if result:
+        return result[0]
+    return 0.0
 
 
 def split_into_encounters(lines: List[str]) -> Encounters:
@@ -154,19 +164,21 @@ def get_recent_intake_dates(visit: Visit) -> Tuple[str, str]:
     return recent, intake
 
 
-def get_weights(encounters: Encounters) -> Tuple[float, float, float]:
+def get_intake_max_min_weights(encounters: Encounters) -> Tuple[float, float, float]:
     max_weight = 0.0
     min_weight = sys.maxsize
-    intake_weights = set()
+    intake_weight = 0.0
     for visit in encounters:
-        weights = _get_weights_for_group(visit)
+        weights = _get_weights_for_visit(visit)
         if max(weights) > max_weight:
             max_weight = max(weights)
-        if 0 < min(weights) < min_weight:
-            min_weight = min(weights)
+
+        minimum_non_zero_weights = min(w for w in weights if w > 0)
+        if minimum_non_zero_weights < min_weight:
+            min_weight = minimum_non_zero_weights
         if weights[2] != 0.0:
-            intake_weights.add(weights[2])
-    return max(intake_weights) if intake_weights else 0.0, max_weight, min_weight
+            intake_weight = max(intake_weight, weights[2])
+    return intake_weight, max_weight, min_weight
 
 
 def main():
@@ -182,7 +194,9 @@ def main():
                     encounters = split_into_encounters(lines)
 
                     # start collecting data across the encounters
-                    intake_weight, max_weight, min_weight = get_weights(encounters)
+                    intake_weight, max_weight, min_weight = get_intake_max_min_weights(
+                        encounters
+                    )
                     height, discrepancy = find_height(encounters)
 
                     recent_date, intake_date = get_recent_intake_dates(lines)

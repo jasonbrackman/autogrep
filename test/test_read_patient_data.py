@@ -1,6 +1,6 @@
 import unittest
 from read_patient_data import (
-    get_weights,
+    get_intake_max_min_weights,
     has_insurance,
     get_fasting_glucose,
     get_hemoglobin_a1c,
@@ -29,7 +29,7 @@ class TestReadPatientData(unittest.TestCase):
         self.assertEquals(
             get_hemoglobin_a1c(
                 [
-                    ["a1c: 5.5"], # should be 5.5%
+                    ["a1c: 5.5"],  # should be 5.5%
                     ["a1c 5.7"],  # expected
                     ["a1c 6.2"],  # ignored
                 ]
@@ -48,15 +48,8 @@ class TestReadPatientData(unittest.TestCase):
         )
 
     def test_get_weights(self):
-        groups01 = [
-            [
-                "Today's Weight: 200-222 lbs",
-                "Peak Adult Weight: 200-444.0 lbs",
-                "Intake Weight: 200-333.0lbs",
-            ]
-        ]
 
-        groups02 = [
+        group = [
             [
                 "Today's Weight: 222lbs",
                 "Peak Adult Weight: 444 lbs",
@@ -64,24 +57,59 @@ class TestReadPatientData(unittest.TestCase):
             ]
         ]
 
-
-        for group in (groups01, groups02):
-            int_weight, max_weight, min_weight = get_weights(group)
+        for group in (group,):
+            int_weight, max_weight, min_weight = get_intake_max_min_weights(group)
             assert int_weight == 333
             assert max_weight == 444
             assert min_weight == 222
-    # def test_get_weights_no_intake(self):
-    #     group = [
-    #         [
-    #             "Today's Weight: 222lbs",
-    #             "Peak Adult Weight: 444 lbs",
-    #             "Intake Weight:",  # no intake weight
-    #         ]
-    #     ]
-    #     int_weight, max_weight, min_weight = get_weights(group)
-    #     assert int_weight == 0.0
-    #     assert max_weight == 444
-    #     assert min_weight == 222
+
+    def test_get_intake_max_min_weights_with_dash(self):
+        group = [
+            [
+                "Today's Weight: 200-222 lbs",
+                "Peak Adult Weight: 200-444.0 lbs",
+                "Intake Weight: 200-333.0lbs",
+            ]
+        ]
+
+        int_weight, max_weight, min_weight = get_intake_max_min_weights(group)
+        assert int_weight == 333
+        assert max_weight == 444
+        assert min_weight == 222
+
+    def test_get_intake_max_min_weights_without_lbs(self):
+        group = [
+            [
+                "Today's Weight: 222",
+                "Peak Adult Weight: 444 ",
+                "Intake Weight:333       lbs",
+            ]
+        ]
+
+        for group in (group,):
+            int_weight, max_weight, min_weight = get_intake_max_min_weights(group)
+            assert int_weight == 333.0
+            assert max_weight == 444.0
+            assert min_weight == 222.0
+
+    def test_get_intake_max_min_weights_missing_intake(self):
+        group = [
+            [
+                "Today's Weight: 568lbs",
+                "Peak Adult Weight: 345 lbs",
+                "Intake Weight: ",  # no intake weight
+            ],
+            [
+                "Today's Weight: 222lbs",
+                "Peak Adult Weight: 444 lbs",
+                "Intake Weight: ",  # no intake weight
+            ],
+        ]
+        int_weight, max_weight, min_weight = get_intake_max_min_weights(group)
+
+        assert int_weight == 0.0
+        assert max_weight == 568.0
+        assert min_weight == 222.0
 
     def test_has_insurance(self):
         patterns = [

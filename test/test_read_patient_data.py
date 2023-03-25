@@ -57,11 +57,10 @@ class TestReadPatientData(unittest.TestCase):
             ]
         ]
 
-        for group in (group,):
-            int_weight, max_weight, min_weight = get_intake_max_min_weights(group)
-            assert int_weight == 333
-            assert max_weight == 444
-            assert min_weight == 222
+        int_weight, max_weight, min_weight = get_intake_max_min_weights(group)
+        assert int_weight == 333
+        assert max_weight == 444
+        assert min_weight == 222
 
     def test_get_intake_max_min_weights_with_dash(self):
         group = [
@@ -86,11 +85,24 @@ class TestReadPatientData(unittest.TestCase):
             ]
         ]
 
-        for group in (group,):
-            int_weight, max_weight, min_weight = get_intake_max_min_weights(group)
-            assert int_weight == 333.0
-            assert max_weight == 444.0
-            assert min_weight == 222.0
+        int_weight, max_weight, min_weight = get_intake_max_min_weights(group)
+        assert int_weight == 333.0
+        assert max_weight == 444.0
+        assert min_weight == 222.0
+
+    def test_get_intake_max_min_weights_all_zeroes(self):
+        group = [
+            [
+                "Today's Weight: 0",
+                "Peak Adult Weight: 0 ",
+                "Intake Weight:0       lbs",
+            ]
+        ]
+
+        int_weight, max_weight, min_weight = get_intake_max_min_weights(group)
+        assert int_weight == 0.0
+        assert max_weight == 0.0
+        assert min_weight == 0.0
 
     def test_get_intake_max_min_weights_missing_intake(self):
         group = [

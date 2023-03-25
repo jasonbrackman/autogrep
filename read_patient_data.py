@@ -18,6 +18,10 @@ FLOAT_PATTERN = re.compile(r"\d+.?\d+")
 
 # TODO: alcohol - split / look to left for a number -- servings
 
+def get_cormobilities(encounters: Encounters) -> List[str]:
+    for row in _yield_from_rows(encounters):
+        if 'cormobi' in row.lower():
+            print(row)
 
 def _yield_from_rows(encounters: Encounters) -> Iterable[str]:
     """Yields each row from all encounters from recent to oldest."""
@@ -173,11 +177,19 @@ def get_intake_max_min_weights(encounters: Encounters) -> Tuple[float, float, fl
         if max(weights) > max_weight:
             max_weight = max(weights)
 
-        minimum_non_zero_weights = min(w for w in weights if w > 0)
-        if minimum_non_zero_weights < min_weight:
-            min_weight = minimum_non_zero_weights
+        # min() relies on a non-empty container
+        reduced_weights = [w for w in weights if w > 0]
+        if reduced_weights:
+            minimum_non_zero_weights = min(reduced_weights)
+            if minimum_non_zero_weights < min_weight:
+                min_weight = minimum_non_zero_weights
+
         if weights[2] != 0.0:
             intake_weight = max(intake_weight, weights[2])
+
+    # if all defaults, min_weight will still be maxsize! Let's correct that.
+    min_weight = min_weight if min_weight is not sys.maxsize else 0.0
+
     return intake_weight, max_weight, min_weight
 
 
@@ -216,6 +228,7 @@ def main():
                     datasheet["Insurance"] = has_insurance(encounters)
                     datasheet["Fasting Glucose"] = get_fasting_glucose(encounters)
                     datasheet["A1c%"] = get_hemoglobin_a1c(encounters)
+                    get_cormobilities(encounters)
                 datasheets.append(copy.deepcopy(datasheet))
             except Exception as e:
                 print(f"Couldn't process {file}: {e}")

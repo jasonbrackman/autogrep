@@ -3,28 +3,53 @@ import csv
 import os
 import re
 import sys
-from typing import List, Tuple
+from typing import List, Tuple, Iterable
+
+Visit = List[str]
+Encounters = List[Visit]
+
 
 LBS_PATTERN = re.compile(r"\d+\.?\d+\s*lbs")
 HEIGHT_PATTERN = re.compile(r"\d+'\d+|\d+\s*cm")
 SMOKE_PATTERN = re.compile(r"[sS]moker[:|\s*][-|\s*]")
 FLOAT_PATTERN = re.compile(r"\d+.?\d+")
-# TODO:
-# --> HBA1c / Hemoglobin (always a1c): + float
-# --> alcohol - split / look to left for a number -- servings
+
+# TODO: alcohol - split / look to left for a number -- servings
 
 
-def has_insurance(groups: List[List[str]]) -> str:
+def _yield_from_rows(encounters: Encounters) -> Iterable[str]:
+    """Yields each row from all encounters from recent to oldest."""
+    for visit in encounters:
+        for row in visit:
+            yield row
+
+
+def get_hemoglobin_a1c(encounters: Encounters) -> float:
+    """Returns the latest A1c reading."""
+    SUGAR_IMPOSSIBLE = 30
+    for row in _yield_from_rows(encounters):
+        if 'a1c' in row.lower() or 'hemoglobin' in row.lower():
+            print(row)
+            floats = re.findall(FLOAT_PATTERN, row)
+            if floats:
+                result = float(floats[0])  # could be % or mmol/dl
+                if result > SUGAR_IMPOSSIBLE:
+                    # TODO: Get confirmation: A1C( %) = (result + 46.7) / 28.7
+                    result = round((result + 46.7) / 28.7, 1)
+                return result
+    return 0.0
+
+
+def has_insurance(encounters: Encounters) -> str:
     """If `Insurance:` key found return the text after the key."""
-    for group in groups:
-        for line in group:
-            if "Insurance:" in line:
-                details = line.split("Insurance:")
-                if len(details) > 1:
-                    return details[1].strip()
+    for row in _yield_from_rows(encounters):
+        if "Insurance:" in row:
+            details = row.split("Insurance:")
+            if len(details) > 1:
+                return details[1].strip()
 
 
-# def is_alcohol(groups: List[List[str]]) -> bool:
+# def is_alcohol(groups: Encounters) -> bool:
 #     """
 #     Problem determining specifics as there are many entry types, no two the same.
 #     Multiple descriptions throughout reports.
@@ -36,22 +61,21 @@ def has_insurance(groups: List[List[str]]) -> str:
 #                 print(line)
 
 
-def get_fasting_glucose(groups: List[List[str]]) -> float:
-    for group in groups:
-        for line in group:
-            if "fasting" in line.lower():
-                result = re.findall(FLOAT_PATTERN, line)
-                if result:
-                    return float(result[0])
+def get_fasting_glucose(encounters: Encounters) -> float:
+    for row in _yield_from_rows(encounters):
+        if "fasting" in row.lower():
+            result = re.findall(FLOAT_PATTERN, row)
+            if result:
+                return float(result[0])
     return 0.0
 
 
-def is_smoker(groups: List[List[str]]) -> bool:
-    for group in groups:
-        for line in group:
-            smoker = re.findall(SMOKE_PATTERN, line)
-            if smoker and "yes" in line.lower():
-                return True
+def is_smoker(encounters: Encounters) -> bool:
+
+    for row in _yield_from_rows(encounters):
+        smoker = re.findall(SMOKE_PATTERN, row)
+        if smoker and "yes" in row.lower():
+            return True
     return False
 
 
@@ -76,10 +100,10 @@ def normalize_height(heights: List[str]) -> Tuple[int, int]:
     return high, high - low
 
 
-def _get_weights_for_group(group: List[str]) -> Tuple[float, float, float]:
+def _get_weights_for_group(visit: Visit) -> Tuple[float, float, float]:
     # today, peak, intake
     a, b, c = 0.0, 0.0, 0.0
-    for line in group:
+    for line in visit:
         temp = re.findall(LBS_PATTERN, line)
         if temp:
             temp = temp[0].replace("lbs", "").strip()
@@ -93,27 +117,26 @@ def _get_weights_for_group(group: List[str]) -> Tuple[float, float, float]:
     return float(a), float(b), float(c)
 
 
-def split_into_groups(lines: List[str]) -> List[List[str]]:
-    groups = []
-    temp = []
+def split_into_encounters(lines: List[str]) -> Encounters:
+    encounters = []
+    visit = []
     for line in lines:
-        temp.append(line)
+        visit.append(line)
         if line.startswith("ID:"):
-            if len(temp) > 2:
-                groups.append(copy.deepcopy(temp))
-                temp = temp[-2:]
-    if temp:
-        groups.append(temp)
-    return groups
+            if len(visit) > 2:
+                encounters.append(copy.deepcopy(visit))
+                visit = visit[-2:]
+    if visit:
+        encounters.append(visit)
+    return encounters
 
 
-def find_height(groups: List[list[str]]) -> Tuple[int, int]:
+def find_height(encounters: Encounters) -> Tuple[int, int]:
     heights = []
-    for group in groups:
-        for line in group:
-            results = re.findall(HEIGHT_PATTERN, line)
-            if results:
-                heights += results
+    for row in _yield_from_rows(encounters):
+        results = re.findall(HEIGHT_PATTERN, row)
+        if results:
+            heights += results
     height, discrepancy = normalize_height(heights)
     return height, discrepancy
 
@@ -125,8 +148,8 @@ def calculate_bmi(height_cm: int, weight_lbs: float) -> float:
     return round(kilos / meters**2, 1)
 
 
-def get_recent_intake_dates(lines: List[str]) -> Tuple[str, str]:
-    dates = [line.split()[2] for line in lines if line.startswith("Visit Date:")]
+def get_recent_intake_dates(visit: Visit) -> Tuple[str, str]:
+    dates = [line.split()[2] for line in visit if line.startswith("Visit Date:")]
     DEFAULT = "0000-00-00"
     recent, intake = DEFAULT, DEFAULT
     if len(dates) >= 2:
@@ -135,12 +158,12 @@ def get_recent_intake_dates(lines: List[str]) -> Tuple[str, str]:
     return recent, intake
 
 
-def get_weights(groups):
+def get_weights(encounters: Encounters) -> Tuple[float, float, float]:
     max_weight = 0.0
     min_weight = sys.maxsize
     intake_weights = set()
-    for group in groups:
-        weights = _get_weights_for_group(group)
+    for visit in encounters:
+        weights = _get_weights_for_group(visit)
         if max(weights) > max_weight:
             max_weight = max(weights)
         if 0 < min(weights) < min_weight:
@@ -159,28 +182,29 @@ def main():
             with open(file) as handle:
 
                 lines = handle.readlines()
-                groups = split_into_groups(lines)
+                encounters = split_into_encounters(lines)
 
-                # start collecting data across the groups
-                intake_weight, max_weight, min_weight = get_weights(groups)
-                height, discrepancy = find_height(groups)
+                # start collecting data across the encounters
+                intake_weight, max_weight, min_weight = get_weights(encounters)
+                height, discrepancy = find_height(encounters)
 
                 recent_date, intake_date = get_recent_intake_dates(lines)
-                datasheet["Patient Number"] = os.path.splitext(file)[0]
-                datasheet["Encounters"] = len(groups)
+                datasheet["MRN"] = os.path.splitext(file)[0]
+                datasheet["Encounters"] = len(encounters)
                 datasheet["Recent Visit Date"] = recent_date
                 datasheet["Intake Visit Date"] = intake_date
-                datasheet["Intake Weight"] = intake_weight
-                datasheet["Max Weight"] = max_weight
-                datasheet["Min Weight"] = min_weight
+                datasheet["Intake WeightLBS"] = intake_weight
+                datasheet["Max WeightLBS"] = max_weight
+                datasheet["Min WeightLBS"] = min_weight
                 datasheet["HeightCM"] = height
                 datasheet["Height_Low_Err"] = discrepancy
                 datasheet["Intake BMI"] = calculate_bmi(height, intake_weight)
                 datasheet["Max BMI"] = calculate_bmi(height, max_weight)
                 datasheet["Min BMI"] = calculate_bmi(height, min_weight)
-                datasheet["Smoker"] = is_smoker(groups)
-                datasheet["Insurance"] = has_insurance(groups)
-                datasheet["Fasting Glucose"] = get_fasting_glucose(groups)
+                datasheet["Smoker"] = is_smoker(encounters)
+                datasheet["Insurance"] = has_insurance(encounters)
+                datasheet["Fasting Glucose"] = get_fasting_glucose(encounters)
+                datasheet["A1c%"] = get_hemoglobin_a1c(encounters)
             datasheets.append(copy.deepcopy(datasheet))
 
     return datasheets

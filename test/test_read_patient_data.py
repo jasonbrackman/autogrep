@@ -1,8 +1,45 @@
 import unittest
-from read_patient_data import get_weights, has_insurance, get_fasting_glucose
+from read_patient_data import (
+    get_weights,
+    has_insurance,
+    get_fasting_glucose,
+    get_hemoglobin_a1c,
+)
 
 
 class TestReadPatientData(unittest.TestCase):
+    def test_get_hemoglobin(self):
+        self.assertEquals(
+            get_hemoglobin_a1c([["Hemoglobin A1c 5.1"]]), 5.1
+        )  # without colon
+        self.assertEquals(
+            get_hemoglobin_a1c([["Hemoglobin A1c: 5.2"]]), 5.2
+        )  # with colon
+        self.assertEquals(
+            get_hemoglobin_a1c([["Hemoglobin:200"]]), 8.6
+        )  # needs conversion
+        self.assertEquals(get_hemoglobin_a1c([["a1c:"]]), 0.0)  # blank / not entered
+
+        # only first non-empty answer is returned
+        self.assertEquals(
+            get_hemoglobin_a1c(
+                # not valid  # expected  # ignored
+                [["a1c:"], ["a1c 5.7"], ["a1c 6.2"]]
+            ),
+            5.7,
+        )  # blank / not entered))
+
+        self.assertEquals(
+            get_hemoglobin_a1c(
+                [
+                    ["a1c: 110"],  # should be 5.5%
+                    ["a1c 5.7"],  # expected
+                    ["a1c 6.2"],  # ignored
+                ]
+            ),
+            5.5,
+        )  # blank / not entered))
+
     def test_get_weights(self):
         groups01 = [
             [

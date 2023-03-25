@@ -5,7 +5,7 @@ Parse data from collected text files
 
 Data processing collects:
 
-- Patient Number: str
+- MRN: str
 - Encounters: int
 - Recent Visit Date: str 
 - Intake Visit Date: str
@@ -20,3 +20,4 @@ Data processing collects:
 - Smoker: bool
 - Insurance: str
 - Fasting Glucose: float 
+- A1c: float

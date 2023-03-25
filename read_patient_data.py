@@ -5,26 +5,35 @@ import re
 import sys
 from typing import List, Tuple
 
-LBS_PATTERN = re.compile("\d+\.?\d+\s*lbs")
-HEIGHT_PATTERN = re.compile("\d+'\d+|\d+\s*cm")
-SMOKE_PATTERN = re.compile("[sS]moker[:|\s*][-|\s*]")
+LBS_PATTERN = re.compile(r"\d+\.?\d+\s*lbs")
+HEIGHT_PATTERN = re.compile(r"\d+'\d+|\d+\s*cm")
+SMOKE_PATTERN = re.compile(r"[sS]moker[:|\s*][-|\s*]")
 # TODO:
 # --> Fasting Glucose / Glucose Fasting: + float
 # --> HBA1c / Hemoglobin (always a1c): + float
-# --> Insurance: if provider say yes.
 # --> alcohol - split / look to left for a number -- servings
 
 
-def is_alcohol(groups: List[List[str]]) -> bool:
-    """
-    Problem determining specifics as there are many entry types, no two the same.
-    Multiple descriptions throughout reports.
-    Will need further review/discussion.
-    """
+def has_insurance(groups: List[List[str]]) -> str:
+    """If `Insurance:` key found return the text after the key."""
     for group in groups:
         for line in group:
-            if "alcohol" in line.lower():
-                print(line)
+            if "Insurance:" in line:
+                details = line.split("Insurance:")
+                if len(details) > 1:
+                    return details[1].strip()
+
+
+# def is_alcohol(groups: List[List[str]]) -> bool:
+#     """
+#     Problem determining specifics as there are many entry types, no two the same.
+#     Multiple descriptions throughout reports.
+#     Will need further review/discussion.
+#     """
+#     for group in groups:
+#         for line in group:
+#             if "alcohol" in line.lower():
+#                 print(line)
 
 
 def is_smoker(groups: List[List[str]]) -> bool:
@@ -160,7 +169,7 @@ def main():
                 datasheet["Max BMI"] = calculate_bmi(height, max_weight)
                 datasheet["Min BMI"] = calculate_bmi(height, min_weight)
                 datasheet["Smoker"] = is_smoker(groups)
-
+                datasheet["Insurance"] = has_insurance(groups)
             datasheets.append(copy.deepcopy(datasheet))
 
     return datasheets

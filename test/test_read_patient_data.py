@@ -1,5 +1,5 @@
 import unittest
-from read_patient_data import get_weights, has_insurance
+from read_patient_data import get_weights, has_insurance, get_fasting_glucose
 
 
 class TestReadPatientData(unittest.TestCase):
@@ -27,9 +27,22 @@ class TestReadPatientData(unittest.TestCase):
             assert min_weight == 222
 
     def test_has_insurance(self):
-        empty = has_insurance([["Insurance:"]])
-        space_before = has_insurance([["Insurance: space_before"]])
-        space_after = has_insurance([["Insurance:space_after "]])
-        assert empty == ''
-        assert space_before == 'space_before'
-        assert space_after == 'space_after'
+        patterns = [
+            ["Insurance:", ""],
+            ["Insurance: space_before", "space_before"],
+            ["Insurance:space_after ", "space_after"],
+            ["Insurance: before_after ", "before_after"],
+        ]
+        for line, expected in patterns:
+            self.assertEquals(has_insurance([[line]]), expected)
+
+    def test_get_fasting_glucose(self):
+        patterns = [
+            ["fasting glucose:", 0.0],
+            ["Fasting Glucose: 5.2", 5.2],
+            ["fasting glucose 5.4", 5.4],
+            ["fasting glucose:4.7", 4.7],
+            ["Fasting Glucose3.9", 3.9],
+        ]
+        for line, expected in patterns:
+            self.assertEquals(get_fasting_glucose([[line]]), expected)

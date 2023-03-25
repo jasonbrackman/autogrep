@@ -8,6 +8,7 @@ from typing import List, Tuple
 LBS_PATTERN = re.compile(r"\d+\.?\d+\s*lbs")
 HEIGHT_PATTERN = re.compile(r"\d+'\d+|\d+\s*cm")
 SMOKE_PATTERN = re.compile(r"[sS]moker[:|\s*][-|\s*]")
+FLOAT_PATTERN = re.compile(r"\d+.?\d+")
 # TODO:
 # --> Fasting Glucose / Glucose Fasting: + float
 # --> HBA1c / Hemoglobin (always a1c): + float
@@ -34,6 +35,15 @@ def has_insurance(groups: List[List[str]]) -> str:
 #         for line in group:
 #             if "alcohol" in line.lower():
 #                 print(line)
+
+def get_fasting_glucose(groups: List[List[str]]) -> float:
+    for group in groups:
+        for line in group:
+            if 'fasting' in line.lower():
+                result = re.findall(FLOAT_PATTERN, line)
+                if result:
+                    return float(result[0])
+    return 0.0
 
 
 def is_smoker(groups: List[List[str]]) -> bool:
@@ -170,6 +180,7 @@ def main():
                 datasheet["Min BMI"] = calculate_bmi(height, min_weight)
                 datasheet["Smoker"] = is_smoker(groups)
                 datasheet["Insurance"] = has_insurance(groups)
+                datasheet["Fasting Glucose"] = get_fasting_glucose(groups)
             datasheets.append(copy.deepcopy(datasheet))
 
     return datasheets
@@ -178,7 +189,7 @@ def main():
 if __name__ == "__main__":
     datasheets = main()
     if datasheets:
-        with open("data/patient_data.csv", "w") as handle:
+        with open("patient_data.csv", "w") as handle:
             w = csv.DictWriter(handle, datasheets[0].keys())
             w.writeheader()
             for ds in datasheets:

@@ -210,7 +210,7 @@ def find_height(encounters: Encounters) -> Tuple[int, int]:
         results = re.findall(HEIGHT_PATTERN, row)
         if results:
             heights += results
-    print(heights)
+
     height, discrepancy = normalize_height(heights)
     return height, discrepancy
 

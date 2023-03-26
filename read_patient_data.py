@@ -179,11 +179,15 @@ def _get_float_from_weight_line(line: str) -> float:
     # weight line may or may not contain a range using a '-', such as 100-110
     # weight line may or may not contain a decimal, such as 100.5
     # weight line may or may not contain lbs at the end, such as 100.5 lbs
-    MIN_WEIGHT = 100
+
+    MIN_WEIGHT = 100  # often descriptors are provided, such as 'down by 2 lbs'
+    MAX_WEIGHT = 1000  # often the year is provided on this line.
+
     line = line.replace("lbs", "")
     # often contains a date on the same line
     line = line.lower().split('date:')[0]
-    result = [float(r) for r in re.findall(FLOAT_PATTERN, line) if float(r) > MIN_WEIGHT]  # filter out 'down by 2 lbs'
+
+    result = [float(r) for r in re.findall(FLOAT_PATTERN, line) if MIN_WEIGHT < float(r) < MAX_WEIGHT]
     if result:
         return result[-1]  # always take the last number
 

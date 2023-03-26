@@ -3,7 +3,9 @@ from read_patient_data import (
     get_intake_max_min_weights,
     has_insurance,
     get_fasting_glucose,
-    get_hemoglobin_a1c, normalize_height, calculate_bmi,
+    get_hemoglobin_a1c,
+    normalize_height,
+    calculate_bmi,
 )
 
 
@@ -12,7 +14,10 @@ class TestReadPatientData(unittest.TestCase):
         # only first non-empty answer is returned
         patterns = [
             [[["a1c:"], ["a1c 5.7"], ["a1c 6.2"]], 5.7],  # skip the first invalid num.
-            [[["a1c: 5.5"], ["a1c 5.7"], ["a1c 6.2"]], 5.5],  # take the first valid num.
+            [
+                [["a1c: 5.5"], ["a1c 5.7"], ["a1c 6.2"]],
+                5.5,
+            ],  # take the first valid num.
             [[["a1c: "], ["a1c"], ["a1c  6.9"]], 6.9],  # take the last num
             [[["a1c:"], ["a1c"], ["a1c "]], 0.0],  # falls through for a default
         ]
@@ -94,6 +99,20 @@ class TestReadPatientData(unittest.TestCase):
         assert max_weight == 0.0
         assert min_weight == 0.0
 
+    def test_get_intake_max_min_weights_extra_numbers(self):
+        group = [
+            [
+                "Today's Weight: 568lbs down 2 lbs from last time",
+                "Peak Adult Weight: 345 lbs  Date: 2021-12-08",
+                "Intake Weight: 234  in dec 2021",
+            ]
+        ]
+        int_weight, max_weight, min_weight = get_intake_max_min_weights(group)
+
+        assert int_weight == 234.0
+        assert max_weight == 568.0
+        assert min_weight == 234.0
+
     def test_get_intake_max_min_weights_missing_intake(self):
         group = [
             [
@@ -138,11 +157,10 @@ class TestReadPatientData(unittest.TestCase):
         patterns = [
             [["4'11"], 150, 0],  # convert to cm, no diff obvs
             [["5'3", "5'3"], 160, 0],  # two of the same, no diff
-            [['169 cm', "5'6"], 169, 1],  # mixed
+            [["169 cm", "5'6"], 169, 1],  # mixed
             [["5'6", "169 cm"], 169, 1],  # mixed high / low
             [["5'0", "6'0"], 183, 31],  # Low / High in feet'inches"
             [["6'0", "5'0"], 183, 31],  # high/ low in feet'inches"
-
         ]
 
         for heights, exp_total, exp_diff in patterns:
@@ -155,5 +173,9 @@ class TestReadPatientData(unittest.TestCase):
         weight = 0.0
         other = 10
         self.assertEquals(calculate_bmi(height, other), 0.0)  # odd to divide 0/10
-        self.assertEquals(calculate_bmi(other, weight), 0.0)  # Any number divided by zero is zero.
-        self.assertEquals(calculate_bmi(height, weight), 0.0)  # all zeros should result in zeros.
+        self.assertEquals(
+            calculate_bmi(other, weight), 0.0
+        )  # Any number divided by zero is zero.
+        self.assertEquals(
+            calculate_bmi(height, weight), 0.0
+        )  # all zeros should result in zeros.

@@ -31,3 +31,23 @@ The information collected (and its type) includes the following:
 - Latest A1c: float
 - Comorbidities: str
 - Obesity Medications: str
+
+### Requirements
+Python 3.11 (3.8, 3.9, 3.10 also supported)
+
+### To Use
+The script should be placed in the same directory as the .txt files
+
+MacOS - From a terminal window in the directory type: python3 read_patient_data.py
+
+Windows - From a command window in the directory type: py -3 read_patient_data.py
+
+When complete a patient_data.csv will be generated in the same folder.  If the file already 
+exists it will be overwritten.
+
+### Errors
+Any script errors parsing a file will not stop the script.  Instead it will skip the file and
+try the next one.  If you want to cancel, use CNTRL+C OR close the window.
+
+NOTE: if any errors ARE encountered, The file that the error occurred on, the error type, and 
+some line numbers will be produced that can be used to resolve the issue later.

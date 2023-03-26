@@ -12,11 +12,43 @@ Encounters = List[Visit]
 
 
 LBS_PATTERN = re.compile(r"\d+\.?\d+\s*lbs")
+MED_PATTERN = re.compile(
+    r"(?:ozempic|vyvanse|succenda)?"  # Match keywords (optional)
+    r"\s+"  # Match one or more whitespace characters
+    r"(?:at\s+)?"  # Match 'at' keyword followed by one or more whitespace characters (optional)
+    r"(?:\d+\.)?"  # Match one or more digits followed by a decimal point (optional)
+    r"\d+"  # Match one or more digits
+    r"\s*mg\s"  # Match 'mg' keyword preceded by one or more whitespace characters
+    r"(?:ozempic|vyvanse|succenda)?",  # Match keywords (optional)
+    re.IGNORECASE,
+)
+
 HEIGHT_PATTERN = re.compile(r"\d+'\d+|\d+\s*cm")
 SMOKE_PATTERN = re.compile(r"[sS]moker[:|\s*][-|\s*]")
 FLOAT_PATTERN = re.compile(r"\d+.?\d+")
 
-# TODO: alcohol - split / look to left for a number -- servings
+
+def get_obesity_medications(encounters: Encounters) -> str:
+    drug = ""
+    amount = ""
+    unit = ""
+    for row in _yield_from_rows(encounters):
+        if "Obesity Medications:" in row:
+            results = re.findall(MED_PATTERN, row)
+            if results:
+                for result in results:
+                    info: List[str] = result.replace("at", "").strip().split()
+                    if len(info) == 3:
+                        for r in info:
+                            if "." in r or r.isdigit():
+                                amount = r
+                            elif "mg" in r:
+                                unit = r
+                            else:
+                                drug = r
+
+                    return f"{drug.capitalize()} ({amount} {unit})"
+    return ""
 
 
 def get_comorbidities(encounters: Encounters) -> Set[str]:
@@ -33,13 +65,14 @@ def get_comorbidities(encounters: Encounters) -> Set[str]:
             stripped = row.strip()
             if stripped:
                 interesting.add(stripped)
-            if stripped == '':
+            if stripped == "":
                 start_recording = False
 
-        if 'Comorbidities:' in row:
+        if "Comorbidities:" in row:
             start_recording = True
 
     return interesting
+
 
 def _yield_from_rows(encounters: Encounters) -> Iterable[str]:
     """Yields each row from all encounters from recent to oldest."""
@@ -221,8 +254,10 @@ def main():
                 with open(file) as handle:
 
                     lines = handle.read()
-                    lines = lines.replace('\u200c', '')  # problem introduced in data collection
-                    lines = lines.split('\n')
+                    lines = lines.replace(
+                        "\u200c", ""
+                    )  # problem introduced in data collection
+                    lines = lines.split("\n")
                     encounters = split_into_encounters(lines)
 
                     # start collecting data across the encounters
@@ -248,7 +283,11 @@ def main():
                     datasheet["Insurance"] = has_insurance(encounters)
                     datasheet["Fasting Glucose"] = get_fasting_glucose(encounters)
                     datasheet["A1c%"] = get_hemoglobin_a1c(encounters)
-                    datasheet["Comorbidities"] = ';'.join(get_comorbidities(encounters))
+                    datasheet["Comorbidities"] = ";".join(get_comorbidities(encounters))
+                    datasheet["Obesity Medications"] = get_obesity_medications(
+                        encounters
+                    )
+
                 datasheets.append(copy.deepcopy(datasheet))
             except Exception as e:
                 print(f"Couldn't process {file}: {e}")

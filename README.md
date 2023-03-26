@@ -30,3 +30,4 @@ The information collected (and its type) includes the following:
 - Fasting Glucose: float 
 - A1c: float
 - Comorbidities: str
+- Obesity Medications: str

@@ -156,8 +156,8 @@ def normalize_height(heights: List[str]) -> Tuple[int, int]:
         else:
             height = int(height.strip())
         new_heights.add(round(height))
-    low = min(new_heights)
-    high = max(new_heights)
+    low = min(new_heights) if new_heights else 0.0
+    high = max(new_heights) if new_heights else 0.0
     return high, high - low
 
 
@@ -210,6 +210,7 @@ def find_height(encounters: Encounters) -> Tuple[int, int]:
         results = re.findall(HEIGHT_PATTERN, row)
         if results:
             heights += results
+    print(heights)
     height, discrepancy = normalize_height(heights)
     return height, discrepancy
 
@@ -237,7 +238,7 @@ def get_intake_max_min_weights(encounters: Encounters) -> Tuple[float, float, fl
     intake_weight = 0.0
     for visit in encounters:
         weights = _get_weights_for_visit(visit)
-        if max(weights) > max_weight:
+        if weights and max(weights) > max_weight:
             max_weight = max(weights)
 
         # min() relies on a non-empty container
@@ -271,7 +272,7 @@ def main():
                     )  # problem introduced in data collection
                     lines = lines.split("\n")
                     encounters = split_into_encounters(lines)
-
+                    encounters_count = len(encounters)
                     # start collecting data across the encounters
                     intake_weight, max_weight, min_weight = get_intake_max_min_weights(
                         encounters
@@ -280,7 +281,7 @@ def main():
 
                     recent_date, intake_date = get_recent_intake_dates(lines)
                     datasheet["MRN"] = os.path.splitext(file)[0]
-                    datasheet["Encounters"] = len(encounters)
+                    datasheet["Encounters"] = encounters_count
                     datasheet["Recent Visit Date"] = recent_date
                     datasheet["Intake Visit Date"] = intake_date
                     datasheet["Intake WeightLBS"] = intake_weight

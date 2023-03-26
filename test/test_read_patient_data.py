@@ -3,7 +3,7 @@ from read_patient_data import (
     get_intake_max_min_weights,
     has_insurance,
     get_fasting_glucose,
-    get_hemoglobin_a1c,
+    get_hemoglobin_a1c, normalize_height,
 )
 
 
@@ -133,3 +133,20 @@ class TestReadPatientData(unittest.TestCase):
         ]
         for line, expected in patterns:
             self.assertEquals(get_fasting_glucose([[line]]), expected)
+
+    def test_normalize_height(self):
+        patterns = [
+            [["4'11"], 150, 0],  # convert to cm, no diff obvs
+            [["5'3", "5'3"], 160, 0],  # two of the same, no diff
+            [['169 cm', "5'6"], 169, 1],  # mixed
+            [["5'6", "169 cm"], 169, 1],  # mixed high / low
+            [["5'0", "6'0"], 183, 31],  # Low / High in feet'inches"
+            [["6'0", "5'0"], 183, 31],  # high/ low in feet'inches"
+
+        ]
+
+        for heights, exp_total, exp_diff in patterns:
+            i, j = normalize_height(heights)
+            self.assertEquals(i, exp_total)
+            self.assertEquals(j, exp_diff)
+

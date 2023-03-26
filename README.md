@@ -2,6 +2,7 @@
 
 Parse and normalize 'data' from collected text files.
 
+![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue)
 [![Python package](https://github.com/jasonbrackman/autogrep/actions/workflows/python-test.yml/badge.svg?branch=master)](https://github.com/jasonbrackman/autogrep/actions/workflows/python-test.yml)
 
 Autogrep's goal is to parse and normalize data from text files.  Each file consists of `Encounters`

@@ -2,7 +2,7 @@
 
 Parse and normalize 'data' from collected text files.
 
-![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue)
+[![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
 [![Python package](https://github.com/jasonbrackman/autogrep/actions/workflows/python-test.yml/badge.svg?branch=master)](https://github.com/jasonbrackman/autogrep/actions/workflows/python-test.yml)
 
 Autogrep's goal is to parse and normalize data from text files.  Each file consists of `Encounters`
@@ -34,7 +34,7 @@ The information collected (and its type) includes the following:
 - Obesity Medications: str
 
 ### Requirements
-Python 3.11 (3.8, 3.9, 3.10 also supported)
+Python 3.8+
 
 ### To Use
 The script should be placed in the same directory as the .txt files

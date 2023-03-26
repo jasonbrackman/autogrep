@@ -3,7 +3,7 @@ from read_patient_data import (
     get_intake_max_min_weights,
     has_insurance,
     get_fasting_glucose,
-    get_hemoglobin_a1c, normalize_height,
+    get_hemoglobin_a1c, normalize_height, calculate_bmi,
 )
 
 
@@ -150,3 +150,10 @@ class TestReadPatientData(unittest.TestCase):
             self.assertEquals(i, exp_total)
             self.assertEquals(j, exp_diff)
 
+    def test_calculate_bmi_if_zero_files(self):
+        height = 0
+        weight = 0.0
+        other = 10
+        self.assertEquals(calculate_bmi(height, other), 0.0)  # odd to divide 0/10
+        self.assertEquals(calculate_bmi(other, weight), 0.0)  # Any number divided by zero is zero.
+        self.assertEquals(calculate_bmi(height, weight), 0.0)  # all zeros should result in zeros.

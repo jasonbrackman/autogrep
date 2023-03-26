@@ -281,8 +281,8 @@ def main():
                     datasheet["Min BMI"] = calculate_bmi(height, min_weight)
                     datasheet["Smoker"] = is_smoker(encounters)
                     datasheet["Insurance"] = has_insurance(encounters)
-                    datasheet["Fasting Glucose"] = get_fasting_glucose(encounters)
-                    datasheet["A1c%"] = get_hemoglobin_a1c(encounters)
+                    datasheet["Latest Fasting Glucose"] = get_fasting_glucose(encounters)
+                    datasheet["Latest A1c%"] = get_hemoglobin_a1c(encounters)
                     datasheet["Comorbidities"] = ";".join(get_comorbidities(encounters))
                     datasheet["Obesity Medications"] = get_obesity_medications(
                         encounters

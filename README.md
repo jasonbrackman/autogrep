@@ -27,7 +27,7 @@ The information collected (and its type) includes the following:
 - Min BMI: float
 - Smoker: bool
 - Insurance: str
-- Fasting Glucose: float 
-- A1c: float
+- Latest Fasting Glucose: float 
+- Latest A1c: float
 - Comorbidities: str
 - Obesity Medications: str

@@ -5,7 +5,6 @@ import re
 import sys
 from typing import List, Tuple, Iterable, Set
 
-__version__ = 0.01
 
 Visit = List[str]
 Encounters = List[Visit]
@@ -70,7 +69,6 @@ def get_comorbidities(encounters: Encounters) -> Set[str]:
 
         if "Comorbidities:" in row:
             start_recording = True
-
     return interesting
 
 
@@ -175,6 +173,7 @@ def _get_float_from_weight_line(line: str) -> float:
     result = re.findall(FLOAT_PATTERN, line)
     if result:
         return result[0]
+
     return 0.0
 
 
@@ -281,7 +280,9 @@ def main():
                     datasheet["Min BMI"] = calculate_bmi(height, min_weight)
                     datasheet["Smoker"] = is_smoker(encounters)
                     datasheet["Insurance"] = has_insurance(encounters)
-                    datasheet["Latest Fasting Glucose"] = get_fasting_glucose(encounters)
+                    datasheet["Latest Fasting Glucose"] = get_fasting_glucose(
+                        encounters
+                    )
                     datasheet["Latest A1c%"] = get_hemoglobin_a1c(encounters)
                     datasheet["Comorbidities"] = ";".join(get_comorbidities(encounters))
                     datasheet["Obesity Medications"] = get_obesity_medications(
@@ -290,7 +291,13 @@ def main():
 
                 datasheets.append(copy.deepcopy(datasheet))
             except Exception as e:
-                print(f"Couldn't process {file}: {e}")
+                tb = e.__traceback__
+                while tb.tb_next:
+                    tb = tb.tb_next
+                lineno = tb.tb_lineno
+                print(
+                    f"Couldn't process {file}: {e} from ln.{e.__traceback__.tb_lineno} that came from: ln.{lineno}"
+                )
 
     return datasheets
 

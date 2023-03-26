@@ -8,44 +8,34 @@ from read_patient_data import (
 
 
 class TestReadPatientData(unittest.TestCase):
-    def test_get_hemoglobin(self):
-        self.assertEquals(
-            get_hemoglobin_a1c([["Hemoglobin A1c 5.1"]]), 5.1
-        )  # without colon
-        self.assertEquals(
-            get_hemoglobin_a1c([["Hemoglobin A1c: 5.2"]]), 5.2
-        )  # with colon
-        self.assertEquals(get_hemoglobin_a1c([["a1c:"]]), 0.0)  # blank / not entered
-
+    def test_get_hemoglobin_a1c_order(self):
         # only first non-empty answer is returned
-        self.assertEquals(
-            get_hemoglobin_a1c(
-                # not valid  # expected  # ignored
-                [["a1c:"], ["a1c 5.7"], ["a1c 6.2"]]
-            ),
-            5.7,
-        )  # blank / not entered))
+        patterns = [
+            [[["a1c:"], ["a1c 5.7"], ["a1c 6.2"]], 5.7],  # skip the first invalid num.
+            [[["a1c: 5.5"], ["a1c 5.7"], ["a1c 6.2"]], 5.5],  # take the first valid num.
+            [[["a1c: "], ["a1c"], ["a1c  6.9"]], 6.9],  # take the last num
+            [[["a1c:"], ["a1c"], ["a1c "]], 0.0],  # falls through for a default
+        ]
 
-        self.assertEquals(
-            get_hemoglobin_a1c(
-                [
-                    ["a1c: 5.5"],  # should be 5.5%
-                    ["a1c 5.7"],  # expected
-                    ["a1c 6.2"],  # ignored
-                ]
-            ),
-            5.5,
-        )
-        self.assertEquals(
-            get_hemoglobin_a1c(
-                [
-                    ["a1c: "],  # should be 5.5%
-                    ["a1c"],  # expected
-                    ["a1c  "],  # ignored
-                ]
-            ),
-            0.0,
-        )
+        for group, expected in patterns:
+            self.assertEquals(get_hemoglobin_a1c(group), expected)
+
+    def test_get_hemoglobin_a1c_colon_and_without(self):
+        patterns = [
+            [[["Hemoglobin A1c 5.1"]], 5.1],  # without colon
+            [[["Hemoglobin A1c: 5.2"]], 5.2],  # with colon
+            [[["a1c:"]], 0.0],  # blank / data not entered
+        ]
+
+        for group, expected in patterns:
+            self.assertEquals(get_hemoglobin_a1c(group), expected)
+
+    def test_get_hemoglobin_a1c_with_dashes(self):
+        group = [["A1c:6-7"]]
+        assert get_hemoglobin_a1c(group) == 6.5
+
+        group = [["a1c: 6.2-7"]]
+        assert get_hemoglobin_a1c(group) == 6.6
 
     def test_get_weights(self):
 
@@ -143,7 +133,3 @@ class TestReadPatientData(unittest.TestCase):
         ]
         for line, expected in patterns:
             self.assertEquals(get_fasting_glucose([[line]]), expected)
-
-    def test_get_hemoglobin_a1c_with_dashes(self):
-        group = [["A1c:6-7"]]
-        assert get_hemoglobin_a1c(group) == 6.5

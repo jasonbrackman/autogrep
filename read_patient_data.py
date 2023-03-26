@@ -219,7 +219,8 @@ def calculate_bmi(height_cm: int, weight_lbs: float) -> float:
     """Returns weight in KGs to 1 decimal place."""
     kilos = weight_lbs / 2.205
     meters = height_cm / 100
-    return round(kilos / meters**2, 1)
+    result = round(kilos / meters**2, 1) if kilos > 0 and meters > 0 else 0.0
+    return result
 
 
 def get_recent_intake_dates(visit: Visit) -> Tuple[str, str]:

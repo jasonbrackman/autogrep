@@ -30,8 +30,11 @@ The information collected (and its type) includes the following:
 - Insurance: str
 - Latest Fasting Glucose: float 
 - Latest A1c: float
-- Comorbidities: str
+- Comorbidity: str <font color=gray>*</font>
 - Obesity Medications: str
+- Latest Alcohol: str <font color=gray>*</font>
+
+<font color=gray>* May requires additional human interpretation.</font>
 
 ### Requirements
 Python 3.8+

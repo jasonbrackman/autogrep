@@ -25,6 +25,9 @@ MED_PATTERN = re.compile(
 HEIGHT_PATTERN = re.compile(r"\d+'\d+|\d+\s*cm")
 SMOKE_PATTERN = re.compile(r"[sS]moker[:|\s*][-|\s*]")
 FLOAT_PATTERN = re.compile(r"\d+.?\d+")
+ALCOHOL_PATTERN = re.compile(
+    r"(?:^|\. )([^.\n]*\balcohol\b[^.\n]*\.)\s*", re.IGNORECASE
+)
 
 
 def get_obesity_medications(encounters: Encounters) -> str:
@@ -50,9 +53,9 @@ def get_obesity_medications(encounters: Encounters) -> str:
     return ""
 
 
-def get_comorbidities(encounters: Encounters) -> Set[str]:
+def get_comorbidity(encounters: Encounters) -> Set[str]:
     """
-    Finds the Comorbidities: and starts recording every line until an empty line is found.
+    Finds the Comorbidity: and starts recording every line until an empty line is found.
     When an empty line is found the recording stops.  This will repeat throughout all Visits.
     The same information will not be entered twice and an unordered set of information will
     be returned.
@@ -98,16 +101,23 @@ def has_insurance(encounters: Encounters) -> str:
                 return details[1].strip()
 
 
-# def is_alcohol(groups: Encounters) -> bool:
-#     """
-#     Problem determining specifics as there are many entry types, no two the same.
-#     Multiple descriptions throughout reports.
-#     Will need further review/discussion.
-#     """
-#     for group in groups:
-#         for line in group:
-#             if "alcohol" in line.lower():
-#                 print(line)
+def get_alcohol(encounters: Encounters) -> str:
+    """
+    Problem determining specifics as there are many entry types, no two the same.
+    Multiple descriptions throughout reports.
+    Will need further review/discussion.
+    - Currently returns the line that mentions 'alcohol'
+    """
+    items = []
+    for row in _yield_from_rows(encounters):
+        if row.startswith("Alcohol:"):
+            items.append(row)
+        else:
+            results = re.findall(ALCOHOL_PATTERN, row)
+            items += results
+    if items:
+        return items[0]  # only returns the most recent mention of alcohol
+    return "0 Servings"
 
 
 def get_fasting_glucose(encounters: Encounters) -> float:
@@ -284,10 +294,11 @@ def main():
                         encounters
                     )
                     datasheet["Latest A1c%"] = get_hemoglobin_a1c(encounters)
-                    datasheet["Comorbidities"] = ";".join(get_comorbidities(encounters))
+                    datasheet["Comorbidity"] = ";".join(get_comorbidity(encounters))
                     datasheet["Obesity Medications"] = get_obesity_medications(
                         encounters
                     )
+                    datasheet["Latest Alcohol"] = get_alcohol(encounters)
 
                 datasheets.append(copy.deepcopy(datasheet))
             except Exception as e:

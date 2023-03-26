@@ -143,3 +143,7 @@ class TestReadPatientData(unittest.TestCase):
         ]
         for line, expected in patterns:
             self.assertEquals(get_fasting_glucose([[line]]), expected)
+
+    def test_get_hemoglobin_a1c_with_dashes(self):
+        group = [["A1c:6-7"]]
+        assert get_hemoglobin_a1c(group) == 6.5

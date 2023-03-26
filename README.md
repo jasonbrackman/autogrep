@@ -26,7 +26,7 @@ The information collected (and its type) includes the following:
 - Intake BMI: float
 - Max BMI: float
 - Min BMI: float
-- Smoker: bool
+- Smoker: str <font color=gray>*</font>
 - Insurance: str
 - Latest Fasting Glucose: float 
 - Latest A1c: float

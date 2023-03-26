@@ -24,7 +24,7 @@ MED_PATTERN = re.compile(
 
 HEIGHT_PATTERN = re.compile(r"\d+'\d+|\d+\s*cm")
 SMOKE_PATTERN = re.compile(r"[sS]moker[:|\s*][-|\s*]")
-FLOAT_PATTERN = re.compile(r"\d+.?\d+")
+FLOAT_PATTERN = re.compile(r"\d+(?:\.\d+)?")  # r"\d+.?\d+"
 ALCOHOL_PATTERN = re.compile(
     r"(?:^|\. )([^.\n]*\balcohol\b[^.\n]*\.)\s*", re.IGNORECASE
 )
@@ -85,10 +85,12 @@ def _yield_from_rows(encounters: Encounters) -> Iterable[str]:
 def get_hemoglobin_a1c(encounters: Encounters) -> float:
     """Returns the latest A1c reading."""
     for row in _yield_from_rows(encounters):
-        if "a1c" in row.lower():
+        row = row.lower()
+        if "a1c" in row:
+            row = row.replace("a1c", '')
             floats = re.findall(FLOAT_PATTERN, row)
             if floats:
-                return float(floats[0])
+                return sum(float(f) for f in floats) / len(floats)
     return 0.0
 
 
@@ -129,13 +131,13 @@ def get_fasting_glucose(encounters: Encounters) -> float:
     return 0.0
 
 
-def is_smoker(encounters: Encounters) -> bool:
+def is_smoker(encounters: Encounters) -> str:
 
     for row in _yield_from_rows(encounters):
         smoker = re.findall(SMOKE_PATTERN, row)
-        if smoker and "yes" in row.lower():
-            return True
-    return False
+        if smoker:
+            return row.replace(smoker[0], '').strip()
+    return ''
 
 
 def normalize_height(heights: List[str]) -> Tuple[int, int]:
@@ -177,12 +179,13 @@ def _get_float_from_weight_line(line: str) -> float:
     # weight line may or may not contain a range using a '-', such as 100-110
     # weight line may or may not contain a decimal, such as 100.5
     # weight line may or may not contain lbs at the end, such as 100.5 lbs
-    if "-" in line:
-        line = line.split("-")[-1]
+    MIN_WEIGHT = 100
     line = line.replace("lbs", "")
-    result = re.findall(FLOAT_PATTERN, line)
+    # often contains a date on the same line
+    line = line.lower().split('date:')[0]
+    result = [float(r) for r in re.findall(FLOAT_PATTERN, line) if float(r) > MIN_WEIGHT]  # filter out 'down by 2 lbs'
     if result:
-        return result[0]
+        return result[-1]  # always take the last number
 
     return 0.0
 

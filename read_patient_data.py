@@ -22,7 +22,7 @@ MED_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-HEIGHT_PATTERN = re.compile(r"\d+'\d+|\d+\s*cm")
+HEIGHT_PATTERN = re.compile(r"\d+(?:\.\d+)?\s*cm")
 SMOKE_PATTERN = re.compile(r"[sS]moker[:|\s*][-|\s*]")
 FLOAT_PATTERN = re.compile(r"\d+(?:\.\d+)?")  # r"\d+.?\d+"
 ALCOHOL_PATTERN = re.compile(
@@ -88,9 +88,9 @@ def get_hemoglobin_a1c(encounters: Encounters) -> float:
         row = row.lower()
         if "a1c" in row:
             row = row.replace("a1c", '')
-            floats = re.findall(FLOAT_PATTERN, row)
+            floats = [float(f) for f in re.findall(FLOAT_PATTERN, row) if float(f) < 17 and not f.startswith('0')]
             if floats:
-                return sum(float(f) for f in floats) / len(floats)
+                return round(sum(floats) / len(floats), 1)
     return 0.0
 
 
@@ -124,7 +124,7 @@ def get_alcohol(encounters: Encounters) -> str:
 
 def get_fasting_glucose(encounters: Encounters) -> float:
     for row in _yield_from_rows(encounters):
-        if "fasting" in row.lower():
+        if "fasting glucose" in row.lower() or "glucose fasting" in row.lower():
             result = re.findall(FLOAT_PATTERN, row)
             if result:
                 return float(result[0])
@@ -154,10 +154,10 @@ def normalize_height(heights: List[str]) -> Tuple[int, int]:
             height = (feet + inches) * INCHES_TO_CMS
 
         else:
-            height = int(height.strip())
+            height = float(height.strip())
         new_heights.add(round(height))
-    low = min(new_heights) if new_heights else 0.0
-    high = max(new_heights) if new_heights else 0.0
+    low = min(new_heights) if new_heights else 0
+    high = max(new_heights) if new_heights else 0
     return high, high - low
 
 
@@ -165,7 +165,7 @@ def _get_weights_for_visit(visit: Visit) -> Tuple[float, float, float]:
     # today, peak, intake
     a, b, c = 0.0, 0.0, 0.0
     for line in visit:
-        if line.startswith("Today's Weight:"):
+        if line.startswith(("Today's Weight:", "Current Weight:")):
             a = _get_float_from_weight_line(line)
         elif line.startswith("Peak Adult Weight:"):
             b = _get_float_from_weight_line(line)

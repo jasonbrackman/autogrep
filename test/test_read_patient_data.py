@@ -42,6 +42,14 @@ class TestReadPatientData(unittest.TestCase):
         group = [["a1c: 6.2-7"]]
         assert get_hemoglobin_a1c(group) == 6.6
 
+    def test_get_hemoglobin_a1c_with_date(self):
+        group = [["a1c:6.1 % 2023/feb/04"]]
+        assert get_hemoglobin_a1c(group) == 6.1
+
+    def test_get_hemoglobin_a1c_with_high_value(self):
+        group = [["a1c: next measurement will be on the 17th"]]
+        assert get_hemoglobin_a1c(group) == 0.0
+
     def test_get_weights(self):
 
         group = [
@@ -161,6 +169,7 @@ class TestReadPatientData(unittest.TestCase):
             [["5'6", "169 cm"], 169, 1],  # mixed high / low
             [["5'0", "6'0"], 183, 31],  # Low / High in feet'inches"
             [["6'0", "5'0"], 183, 31],  # high/ low in feet'inches"
+            [['165.1 cm', '165 cm', '165cm'], 165, 0],
         ]
 
         for heights, exp_total, exp_diff in patterns:

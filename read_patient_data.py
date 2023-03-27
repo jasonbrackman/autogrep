@@ -10,7 +10,9 @@ Visit = List[str]
 Encounters = List[Visit]
 
 
-LBS_PATTERN = re.compile(r"\d+\.?\d+\s*lbs")
+LBS_PATTERN = re.compile(
+    r"\d+\.?\d+\s*lbs"
+)  # matches weight values in pounds (e.g., "150 lbs").
 MED_PATTERN = re.compile(
     r"(?:ozempic|vyvanse|succenda)?"  # Match keywords (optional)
     r"\s+"  # Match one or more whitespace characters
@@ -20,17 +22,25 @@ MED_PATTERN = re.compile(
     r"\s*mg\s"  # Match 'mg' keyword preceded by one or more whitespace characters
     r"(?:ozempic|vyvanse|succenda)?",  # Match keywords (optional)
     re.IGNORECASE,
-)
+)  # matches medication values in milligrams (e.g., "5mg OZEMPIC").
 
-HEIGHT_PATTERN = re.compile(r"\d+(?:\.\d+)?\s*cm")
-SMOKE_PATTERN = re.compile(r"[sS]moker[:|\s*][-|\s*]")
-FLOAT_PATTERN = re.compile(r"\d+(?:\.\d+)?")  # r"\d+.?\d+"
+HEIGHT_PATTERN = re.compile(
+    r"\d+(?:\.\d+)?\s*cm"
+)  # matches height values in centimeters (e.g., "170cm").
+SMOKE_PATTERN = re.compile(
+    r"[sS]moker[:|\s*][-|\s*]"
+)  # matches smoking-related keywords (e.g., "smoker:").
+FLOAT_PATTERN = re.compile(
+    r"\d+(?:\.\d+)?"
+)  # matches floating point values (e.g., "3.14").
 ALCOHOL_PATTERN = re.compile(
     r"(?:^|\. )([^.\n]*\balcohol\b[^.\n]*\.)\s*", re.IGNORECASE
-)
+)  # matches alcohol-related keywords (e.g., "alcohol").
 
 
 def get_obesity_medications(encounters: Encounters) -> str:
+    """searches for medications related to obesity in a patient's medical records and returns the
+    medication name, amount, and unit of measurement."""
     drug = ""
     amount = ""
     unit = ""
@@ -55,10 +65,8 @@ def get_obesity_medications(encounters: Encounters) -> str:
 
 def get_comorbidity(encounters: Encounters) -> Set[str]:
     """
-    Finds the Comorbidity: and starts recording every line until an empty line is found.
-    When an empty line is found the recording stops.  This will repeat throughout all Visits.
-    The same information will not be entered twice and an unordered set of information will
-    be returned.
+    Searches for comorbidities (other health conditions that a patient has in addition to the primary health
+    condition) in a patient's medical records and returns a set of comorbidities.
     """
     start_recording = False
     interesting = set()
@@ -83,19 +91,25 @@ def _yield_from_rows(encounters: Encounters) -> Iterable[str]:
 
 
 def get_hemoglobin_a1c(encounters: Encounters) -> float:
+    """searches for the latest Hemoglobin A1c (a blood test used to measure blood sugar levels over the
+    last 2-3 months) reading in a record and returns the value as a float."""
     """Returns the latest A1c reading."""
     for row in _yield_from_rows(encounters):
         row = row.lower()
         if "a1c" in row:
-            row = row.replace("a1c", '')
-            floats = [float(f) for f in re.findall(FLOAT_PATTERN, row) if float(f) < 17 and not f.startswith('0')]
+            row = row.replace("a1c", "")
+            floats = [
+                float(f)
+                for f in re.findall(FLOAT_PATTERN, row)
+                if float(f) < 17 and not f.startswith("0")
+            ]
             if floats:
                 return round(sum(floats) / len(floats), 1)
     return 0.0
 
 
 def has_insurance(encounters: Encounters) -> str:
-    """If `Insurance:` key found return the text after the key."""
+    """Searches for insurance information in a patient's medical records and returns the information as a string."""
     for row in _yield_from_rows(encounters):
         if "Insurance:" in row:
             details = row.split("Insurance:")
@@ -104,12 +118,7 @@ def has_insurance(encounters: Encounters) -> str:
 
 
 def get_alcohol(encounters: Encounters) -> str:
-    """
-    Problem determining specifics as there are many entry types, no two the same.
-    Multiple descriptions throughout reports.
-    Will need further review/discussion.
-    - Currently returns the line that mentions 'alcohol'
-    """
+    """Searches for alcohol consumption information in a record and returns the information as a string."""
     items = []
     for row in _yield_from_rows(encounters):
         if row.startswith("Alcohol:"):
@@ -123,6 +132,8 @@ def get_alcohol(encounters: Encounters) -> str:
 
 
 def get_fasting_glucose(encounters: Encounters) -> float:
+    """Searches for the latest fasting glucose (a blood test used to measure glucose levels in the blood after
+    fasting) reading in a record and returns the value as a float."""
     for row in _yield_from_rows(encounters):
         if "fasting glucose" in row.lower() or "glucose fasting" in row.lower():
             result = re.findall(FLOAT_PATTERN, row)
@@ -132,15 +143,17 @@ def get_fasting_glucose(encounters: Encounters) -> float:
 
 
 def is_smoker(encounters: Encounters) -> str:
-
+    """Searches for smoking related information in a record and returns the information as a string."""
     for row in _yield_from_rows(encounters):
         smoker = re.findall(SMOKE_PATTERN, row)
         if smoker:
-            return row.replace(smoker[0], '').strip()
-    return ''
+            return row.replace(smoker[0], "").strip()
+    return ""
 
 
 def normalize_height(heights: List[str]) -> Tuple[int, int]:
+    """normalizes height values (in centimeters) by converting any height values in feet and inches to
+    centimeters and returns the normalized height as a tuple of integers (height, difference bw/low and high)."""
     INCHES_TO_CMS = 2.54
     new_heights = set()
     for height in heights:
@@ -185,9 +198,13 @@ def _get_float_from_weight_line(line: str) -> float:
 
     line = line.replace("lbs", "")
     # often contains a date on the same line
-    line = line.lower().split('date:')[0]
+    line = line.lower().split("date:")[0]
 
-    result = [float(r) for r in re.findall(FLOAT_PATTERN, line) if MIN_WEIGHT < float(r) < MAX_WEIGHT]
+    result = [
+        float(r)
+        for r in re.findall(FLOAT_PATTERN, line)
+        if MIN_WEIGHT < float(r) < MAX_WEIGHT
+    ]
     if result:
         return result[-1]  # always take the last number
 
@@ -195,6 +212,9 @@ def _get_float_from_weight_line(line: str) -> float:
 
 
 def split_into_encounters(lines: List[str]) -> Encounters:
+    """Takes a list of strings and splits them into separate encounters, based on the
+    presence of the "ID:" line. Each encounter is stored as a separate list of strings
+    within the encounters list."""
     encounters = []
     visit = []
     for line in lines:
@@ -209,6 +229,7 @@ def split_into_encounters(lines: List[str]) -> Encounters:
 
 
 def find_height(encounters: Encounters) -> Tuple[int, int]:
+    """Searches through the encounters for the patient's height and returns it along with the height discrepancy."""
     heights = []
     for row in _yield_from_rows(encounters):
         results = re.findall(HEIGHT_PATTERN, row)
@@ -220,7 +241,7 @@ def find_height(encounters: Encounters) -> Tuple[int, int]:
 
 
 def calculate_bmi(height_cm: int, weight_lbs: float) -> float:
-    """Returns weight in KGs to 1 decimal place."""
+    """calculates and returns the patient's BMI based on their height and weight.."""
     kilos = weight_lbs / 2.205
     meters = height_cm / 100
     result = round(kilos / meters**2, 1) if kilos > 0 and meters > 0 else 0.0
@@ -228,6 +249,7 @@ def calculate_bmi(height_cm: int, weight_lbs: float) -> float:
 
 
 def get_recent_intake_dates(visit: Visit) -> Tuple[str, str]:
+    """Extracts the most recent and the intake visit dates for a given encounter."""
     dates = [line.split()[2] for line in visit if line.startswith("Visit Date:")]
     DEFAULT = "0000-00-00"
     recent, intake = DEFAULT, DEFAULT
@@ -238,6 +260,7 @@ def get_recent_intake_dates(visit: Visit) -> Tuple[str, str]:
 
 
 def get_intake_max_min_weights(encounters: Encounters) -> Tuple[float, float, float]:
+    """Calculates the maximum, minimum, and intake weight for a patient across all their encounters."""
     max_weight = 0.0
     min_weight = sys.maxsize
     intake_weight = 0.0
@@ -263,6 +286,9 @@ def get_intake_max_min_weights(encounters: Encounters) -> Tuple[float, float, fl
 
 
 def main():
+    """reads text files in the current directory, processes the text data, and stores
+    the extracted information for each patient in a dictionary. The dictionaries are
+    stored in a list, which is then written to a CSV file."""
     datasheets = []
 
     for file in os.listdir("."):

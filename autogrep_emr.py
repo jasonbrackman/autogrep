@@ -11,10 +11,10 @@ import pyperclip
 if TYPE_CHECKING:
     from openpyxl.worksheet.worksheet import Worksheet
 
-CLOSE = 'w'
-COPY = 'c'
-PASTE = 'v'
-SELECT_ALL = 'a'
+CLOSE = "w"
+COPY = "c"
+PASTE = "v"
+SELECT_ALL = "a"
 
 
 class AutoGrepException(Exception):
@@ -26,17 +26,17 @@ def get_worksheet(input_file: str) -> Worksheet:
         raise AutoGrepException(f"Input file not found: {input_file}")
 
     with openpyxl.load_workbook(input_file) as workbook:
-        worksheet = workbook['Sheet1']
+        worksheet = workbook["Sheet1"]
     return worksheet
 
 
 def do_work(worksheet: Worksheet):
     # Grab the patient's MRN from the master Excel sheet, and copy to the clipboard
     for cell_index in range(4, 28):
-        cell = worksheet[f'A{cell_index}']
+        cell = worksheet[f"A{cell_index}"]
         value = cell.value
         pyperclip.copy(value)
-        print(f'Working on patient MRN {value}, number {cell_index}')
+        print(f"Working on patient MRN {value}, number {cell_index}")
         sleep(0.1)
 
         # ---------------------------------------------
@@ -63,7 +63,7 @@ def do_work(worksheet: Worksheet):
             (793, 870, 0.1, 0.1, 0.1),
         ]
         for i in range(4):
-            print(f'clicking down the line, run number {i}')
+            print(f"clicking down the line, run number {i}")
             for x, y, duration, s1, s2 in steps:
                 _move_and_click(x, y, duration=duration, s1=s1, s2=s2)
 
@@ -75,7 +75,6 @@ def do_work(worksheet: Worksheet):
             (1200, 240, 0.25, 0.1, 1),
             (468, 349, 0.25, 0.1, 0.1),
             (860, 410, 0.25, 0.1, 3),
-
         ]
         for x, y, duration, s1, s2 in steps:
             _move_and_click(x, y, duration=duration, s1=s1, s2=s2)
@@ -87,7 +86,7 @@ def do_work(worksheet: Worksheet):
         _hotkey_command(COPY, s1=0.5)
 
         clipboard_content = pyperclip.paste()
-        with open(f'{value}.txt', 'w') as file:
+        with open(f"{value}.txt", "w") as file:
             file.write(clipboard_content)
         sleep(0.5)
 
@@ -95,7 +94,7 @@ def do_work(worksheet: Worksheet):
 
 
 def _hotkey_command(command: str, s1=0.0):
-    pyautogui.hotkey('command', command)
+    pyautogui.hotkey("command", command)
     sleep(s1)
 
 
@@ -108,7 +107,7 @@ def _move_and_click(x, y, duration=0.0, s1=0.0, s2=0.0):
 
 if __name__ == "__main__":
     sleep(5)  # gives me 5 seconds to navigate to my browser window
-    ws = get_worksheet('input.xlsx')
+    ws = get_worksheet("input.xlsx")
     do_work(ws)
 
-    print('DONE')
+    print("DONE")

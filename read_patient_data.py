@@ -231,7 +231,7 @@ def split_into_encounters(lines: List[str]) -> Encounters:
     return encounters
 
 
-def find_height(encounters: Encounters) -> Tuple[int, int]:
+def get_height_and_discrepancy(encounters: Encounters) -> Tuple[int, int]:
     """Searches through the encounters for the patient's height and returns it along with the height discrepancy."""
     heights = []
     for row in _yield_from_rows(encounters):
@@ -310,7 +310,7 @@ def main():
                     intake_weight, max_weight, min_weight = get_intake_max_min_weights(
                         encounters
                     )
-                    height, discrepancy = find_height(encounters)
+                    height, discrepancy = get_height_and_discrepancy(encounters)
 
                     recent_date, intake_date = get_recent_intake_dates(lines)
                     datasheet["MRN"] = os.path.splitext(file)[0]

@@ -6,6 +6,7 @@ from read_patient_data import (
     get_hemoglobin_a1c,
     normalize_height,
     calculate_bmi,
+    get_height_and_discrepancy,
 )
 
 
@@ -161,6 +162,18 @@ class TestReadPatientData(unittest.TestCase):
         for line, expected in patterns:
             self.assertEquals(get_fasting_glucose([[line]]), expected)
 
+    def test_get_height_and_discrepancy(self):
+        groups = [
+            ([["Height: 4'5\"", "Height:135cm"]], 135, 0),
+            ([["height:140 cm"]], 140, 0),
+            ([["height: 136cm", "height: 134cm"]], 136, 2),
+            ([["height 170cm and 5'10 and 160cm"]], 178, 18),
+        ]
+        for group, e_height, e_discrepancy in groups:
+            height, discrepancy = get_height_and_discrepancy(group)
+            assert height == e_height
+            assert discrepancy == e_discrepancy
+
     def test_normalize_height(self):
         patterns = [
             [["4'11"], 150, 0],  # convert to cm, no diff obvs
@@ -169,7 +182,7 @@ class TestReadPatientData(unittest.TestCase):
             [["5'6", "169 cm"], 169, 1],  # mixed high / low
             [["5'0", "6'0"], 183, 31],  # Low / High in feet'inches"
             [["6'0", "5'0"], 183, 31],  # high/ low in feet'inches"
-            [['165.1 cm', '165 cm', '165cm'], 165, 0],
+            [["165.1 cm", "165 cm", "165cm"], 165, 0],
         ]
 
         for heights, exp_total, exp_diff in patterns:

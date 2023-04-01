@@ -24,9 +24,12 @@ MED_PATTERN = re.compile(
     re.IGNORECASE,
 )  # matches medication values in milligrams (e.g., "5mg OZEMPIC").
 
-HEIGHT_PATTERN = re.compile(
+HEIGHT_CMS_PATTERN = re.compile(
     r"\d+(?:\.\d+)?\s*cm"
 )  # matches height values in centimeters (e.g., "170cm").
+HEIGHT_INCHES_PATTERN = re.compile(
+    r"\d+'\d+"
+)  # matches height values in inches (e.g., "4'10")
 SMOKE_PATTERN = re.compile(
     r"[sS]moker[:|\s*][-|\s*]"
 )  # matches smoking-related keywords (e.g., "smoker:").
@@ -232,16 +235,15 @@ def find_height(encounters: Encounters) -> Tuple[int, int]:
     """Searches through the encounters for the patient's height and returns it along with the height discrepancy."""
     heights = []
     for row in _yield_from_rows(encounters):
-        results = re.findall(HEIGHT_PATTERN, row)
-        if results:
-            heights += results
+        heights += re.findall(HEIGHT_CMS_PATTERN, row)
+        heights += re.findall(HEIGHT_INCHES_PATTERN, row)
 
     height, discrepancy = normalize_height(heights)
     return height, discrepancy
 
 
 def calculate_bmi(height_cm: int, weight_lbs: float) -> float:
-    """calculates and returns the patient's BMI based on their height and weight.."""
+    """calculates and returns the patient's BMI based on their height and weight."""
     kilos = weight_lbs / 2.205
     meters = height_cm / 100
     result = round(kilos / meters**2, 1) if kilos > 0 and meters > 0 else 0.0
